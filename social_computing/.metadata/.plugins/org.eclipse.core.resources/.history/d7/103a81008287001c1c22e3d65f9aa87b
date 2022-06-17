@@ -1,0 +1,61 @@
+package matrices;
+
+import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNoException;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.junit.Test;
+
+public class Test_task {
+
+	@Test
+	public void testException() {
+		boolean thrown = false;
+        Matriz m1 = new Matriz(1, 2, true);
+        System.out.println(m1);
+        Matriz m2 = new Matriz(3, 4, true);
+        System.out.println(m2); 
+        try{
+        	System.out.println(Matriz.sumarDosMatrices(m1, m2));
+        } catch(DimensionesIncompatibles e) {
+        	thrown = true;
+        }
+        assertTrue(thrown);
+	}
+	@Test
+	public void testMultiplicacion() {
+		Matriz m1 = new Matriz(3, 3, false);
+		m1 += {{1,2,3},{2,0,2},{1,2,3}};
+		//int[][] m1 = {{1,2,3},{2,0,2},{1,2,3}};
+        System.out.println(m1);
+        Matriz m2 = new Matriz(3, 3, true);
+        //int[][] m2 = {{1,2,3},{4,5,6},{7,8,9}};
+        System.out.println(m2);
+        //Matriz resultado = Matriz.multiplicarDosMatrices(m1, m2);
+        Matriz expected = {{30,36,42},{16,20,24},{30,36,42}};
+        try {
+        	System.out.println(Matriz.multiplicarDosMatrices(m1, m2));
+        } catch (DimensionesIncompatibles ex) {
+            Logger.getLogger(Driver.class.getName()).log(Level.SEVERE, null, ex);
+        }
+	}
+	@Test
+	public void testTraspuesta() {
+		Matriz m1 = new Matriz(3, 3, false);
+		//int[][] m1 = {{1,2,3},{2,0,2},{1,2,3}};
+        System.out.println(m1);
+        Matriz m2 = new Matriz(3, 3, true);
+        //int[][] m2 = {{1,2,3},{4,5,6},{7,8,9}};
+        System.out.println(m2);
+        //Matriz resultado = Matriz.multiplicarDosMatrices(m1, m2);
+        Matriz expected = {{1,4,7},{2,5,8},{3,6,9}};
+        try {
+        	System.out.println(Matriz.multiplicarDosMatrices(m1, m2));
+        } catch (DimensionesIncompatibles ex) {
+            Logger.getLogger(Driver.class.getName()).log(Level.SEVERE, null, ex);
+        }
+	}
+	
+}

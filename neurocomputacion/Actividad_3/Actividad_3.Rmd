@@ -1,0 +1,171 @@
+---
+title: "Actividad_3"
+author: "Sergio Rodero Casado"
+date: "24/2/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+workingDir <- "C:/Users/sergi/Desktop/Code/Neurocomputacion/Actividad_3"
+setwd(workingDir)
+
+datos <- read.table(file=paste(workingDir,"datos_icb.txt",sep="/"), header=T, sep=" ", dec=".")
+
+```
+
+## Método de HoldOut
+
+Para poder utilizar la función *holdout* es necesario importar la librería *rminer*. Esta función devuelve una lista con los índices de los patrones de entrenamiento y test.
+
+```{r}
+library(rminer)
+```
+
+## Artificial Neural Networks
+
+Para estimar un modelo de red neuronal artificial se usa la función *nnet* del paquete con el mismo nombre.
+
+```{r}
+library(nnet)
+fit <- nnet((recid=="SI") ~ ., data = datos, size=2,maxit=10000, decay=0.001)
+```
+
+El método de *Repeated HoldOut* con el uso del modelo de *Artificial Neural Networks* se puede realizar mediante la siguiente función:
+
+```{r}
+repHOut_ANN <- function(x, n, esq_val, neu){
+  acc.tr <- c()
+  acc.ts <- c()
+  for (i in 1:n){
+    ho <- holdout(x$recid, ratio = esq_val)
+    train <- x[ho$tr,]
+    test <- x[ho$ts,]
+    fit <- nnet((recid=="SI") ~ edad+tam+grado+gang+quim+horm, data = train, size=neu,maxit=10000, decay=0.001)
+    predicted.tr <- predict(fit, newdata=train, type="raw")
+    predicted.ts <- predict(fit, newdata=test, type="raw")
+    predicted_class.tr <- ifelse(predicted.tr>0.5, "SI","NO")
+    predicted_class.ts <- ifelse(predicted.ts>0.5, "SI","NO")
+    acc.tr <- c(acc.tr,sum(predicted_class.tr == train$recid)/length(train$recid))
+    acc.ts <- c(acc.ts,sum(predicted_class.ts == test$recid)/length(test$recid))
+  }
+  list(X_acc.tr = mean(acc.tr), X_acc.ts = mean(acc.ts))
+}
+```
+
+Se repite el procedimiento numerosas veces para poder realizar un análisis de los resultados con un diferente número de neuronas y poder representarlo en un gráfico donde se vea claramente.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+result_ANN <- sapply(c(1:15), repHOut_ANN, x = datos, n = 30, esq_val = 2/3)
+```
+
+Se puede ver una representación del gráfica en el que en el eje *X* se encuentra el tamaño de la arquitectura y en el eje *Y* el ACC.
+
+```{r}
+plot(unlist(result_ANN[1, ]), col="red", ylab="ACC", xlab="Nhh",ylim = c(0.75,1), type = "l")
+lines(unlist(result_ANN[2, ]), col="blue")
+```
+
+En rojo se pueden ver los resultados correspondientes a entrenamiento y en azul los obtenidos como test.
+
+Observando la gráfica se puede decir que a medida que aumenta el número de neuronas en la capa oculta la línea de Training se va distanciado a la de Test, por lo que se está produciendo "Overfitting" y el modelo está generalizando de peor manera a cuando se tienen menos neuronas.
+
+## Support Vector Machines
+
+Para estimar un modelo de máquina de soporte vectorial se va a usar la función *svm* del paquete *e1071*.
+
+```{r}
+library(e1071)
+repHOut_SVM <- function(x, n, esq_val, cost, gamma){
+  acc.tr <- c()
+  acc.ts <- c()
+  for (i in 1:n){
+    ho <- holdout(x$recid, ratio = esq_val)
+    train <- x[ho$tr,]
+    test <- x[ho$ts,]
+    svm.fit <- svm(as.factor(recid) ~ ., data = train, cost = cost, gamma = gamma, probability = TRUE)
+    pred.tr <- attr(predict(svm.fit, newdata = train, probability=TRUE), "probabilities")[,"SI"]
+    pred.ts <- attr(predict(svm.fit, newdata = test, probability=TRUE), "probabilities")[,"SI"]
+    predicted_class.tr <- ifelse(pred.tr>0.5, "SI","NO")
+    predicted_class.ts <- ifelse(pred.ts>0.5, "SI","NO")
+    acc.tr <- c(acc.tr,sum(predicted_class.tr == train$recid)/length(train$recid))
+    acc.ts <- c(acc.ts,sum(predicted_class.ts == test$recid)/length(test$recid))
+  }
+  list(X_acc.tr = mean(acc.tr), X_acc.ts = mean(acc.ts))
+}
+
+repHOut_SVM(datos, n = 30, esq_val = 2/3, cost = 1000, gamma = 1)
+```
+A continuación se realiza una serie de iteraciones en las que se va modificando los valores tanto de gamma como de C del modelo de la máquina de soporte vectorial.
+
+```{r}
+gamma <- c(0.01, 0.05, 0.1, 0.25, 0.5, 1)
+cost <- c(1, 10, 100, 1000)
+GC <- expand.grid(gamma = gamma, cost = cost)
+
+result.svm <- sapply(1:nrow(GC), function(j){repHOut_SVM(datos, n = 30, esq_val = 2/3, cost = GC$cost, gamma = GC$gamma)})
+```
+
+Los resultados obtenidos se van a representar en un gráfico de 3D con valores x a y para C y gamma de manera respectiva, para ello se usa la función *plot_ly* de la librería *plotly*.
+
+```{r}
+library(plotly)
+GC$acc.tr <- unlist(result.svm[1,])
+GC$acc.ts <- unlist(result.svm[2,])
+
+plot_ly(GC, x = ~cost, y = ~gamma, z = ~acc.ts, color = ~acc.ts)
+```
+
+
+## Decision Trees
+
+La última parte de la actividad trata sobre la estimación de árboles de decisión para extracción de reglas desde el conjunto de datos y predicción de la recidiva. Para ello se hace uso de la función *rpart* del mismo paquete y se puede representar mediante el uso de la función *rpart.plot* de la librería con el mismo nombre.
+
+```{r}
+library(rpart)
+library(rpart.plot)
+
+arbol <- rpart(recid~., data = datos)
+
+rpart.plot(arbol)
+```
+
+
+```{r}
+repHOut_rpart <- function(x, n, esq_val){
+  acc.tr <- c()
+  acc.ts <- c()
+  for (i in 1:n){
+    ho <- holdout(x$recid, ratio = esq_val)
+    train <- x[ho$tr,]
+    test <- x[ho$ts,]
+    fit.rpart <- rpart(recid ~ ., data = train)
+    predicted.tr <- predict(fit.rpart, newdata=train, type="prob")
+    predicted.ts <- predict(fit.rpart, newdata=test, type="prob")
+    predicted_class.tr <- ifelse(predicted.tr>0.5, "SI","NO")
+    predicted_class.ts <- ifelse(predicted.ts>0.5, "SI","NO")
+    acc.tr <- c(acc.tr,sum(predicted_class.tr == train$recid)/length(train$recid))
+    acc.ts <- c(acc.ts,sum(predicted_class.ts == test$recid)/length(test$recid))
+  }
+  list(X_acc.tr = mean(acc.tr), X_acc.ts = mean(acc.ts))
+}
+```
+
+
+
+```{r message=FALSE, include=FALSE}
+final.ANN <- repHOut_ANN(datos, n = 30, esq_val = 2/3, neu = 2)
+final.SVM <- repHOut_SVM(datos, n = 30, esq_val = 2/3, cost = 1000, gamma = 1)
+final.rpart <- repHOut_rpart(datos, n = 30, esq_val = 2/3)
+```
+
+A continuación se puede ver una tabla comparativa con el ACC de cada modelo en entrenamiento y generalización.
+
+```{r}
+tab <- cbind(unlist(final.ANN),unlist(final.SVM), unlist(final.rpart))
+colnames(tab) <- c("ANN", "SVM","DT")
+as.table(tab)
+```

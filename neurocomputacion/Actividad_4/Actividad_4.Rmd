@@ -1,0 +1,135 @@
+---
+title: "Actividad_4"
+author: "Sergio Rodero Casado"
+date: "19/2/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# ROC curve and feature selection
+
+## Validación interna. Método de k-Cross Validation
+
+En primer lugar, se establece el directorio de trabajo y se cargan los datos.
+
+```{r}
+workingDir <- "C:/Users/sergi/Desktop/Code/Neurocomputacion/Actividad_4"
+setwd(workingDir)
+
+datos <- read.table(file=paste(workingDir,"datos_icb.txt",sep="/"), header=T, sep=" ", dec=".")
+```
+
+Para realizar el método de validación cruzada es necesario dividir el conjunto de datos en un número determinado de cajas, en este caso se usarán 10, y en cada iteración se usará una de ellas para test y el resto para entrenamiento. Esto se consigue mediante la función *createFolds* del paquete *caret*.
+
+```{r}
+library(caret)
+
+folds <- createFolds(datos$recid, k=10)
+```
+
+Una vez se tienen ya las cajas identificadas se establecen las funciones de ambos métodos. En primer lugar se puede ver el método de validación cruzada, en el que se irán guardando los valores del estimador AUC para posteriormente realizar un promedio de estos. 
+
+
+```{r}
+library(rminer)
+library(pROC)
+crossVal <- function(x){
+  auc.tr <- c()
+  auc.ts <- c()
+  fold.tr <- datos[-x, ]
+  fold.ts <- datos[x, ]
+  rlog <- glm(as.factor(fold.tr$recid) ~ .,data = fold.tr,family = binomial("logit"))
+  pred.tr <- predict(rlog, type = "response",newdata=fold.tr)
+  pred.ts <- predict(rlog, type = "response", newdata=fold.ts)
+  recid.tr <- ifelse(fold.tr$recid == "SI", 1, 0)
+  recid.ts <- ifelse(fold.ts$recid == "SI", 1, 0)
+  auc.tr <- c(auc(recid.tr,pred.tr,levels = c(0, 1), direction = "<"))
+  auc.ts <- c(auc(recid.ts,pred.ts,levels = c(0, 1), direction = "<"))
+  list(auc.tr, auc.ts)
+}
+```
+
+En segundo lugar se encuentra la función correspondiente al método de Repeated HoldOut.
+
+```{r}
+library(nnet)
+repHOut <- function(x, n, esq_val, neu){
+  auc.tr <- c()
+  auc.ts <- c()
+  for (i in 1:n){
+    ho <- holdout(x$recid, ratio = esq_val)
+    train <- x[ho$tr,]
+    test <- x[ho$ts,]
+    fit <- nnet((recid=="SI") ~ ., data = train, size=neu,maxit=10000, decay=0.001)
+    predicted.tr <- predict(fit, newdata=train, type="raw")
+    predicted.ts <- predict(fit, newdata=test, type="raw")
+    recid.tr <- ifelse(train$recid == "SI", 1, 0)
+    recid.ts <- ifelse(test$recid == "SI", 1, 0)
+    auc.HO.tr <- c(auc(recid.tr,predicted.tr,levels = c(0, 1), direction = "<"))
+    auc.HO.ts <- c(auc(recid.ts,predicted.ts,levels = c(0, 1), direction = "<"))
+  }
+  list(X_auc.HO.tr = mean(auc.HO.tr), X_auc.HO.ts = mean(auc.HO.ts))
+}
+```
+
+Finalmente se obtienen los resultados mediante el uso de ambos métodos.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+result <- sapply(folds, crossVal)
+X_auc.cross.tr <- mean(unlist(result[1,]))
+X_auc.cross.ts <- mean(unlist(result[2,]))
+result.HO <- repHOut(datos, n=30, esq_val = 2/3, neu = 3)
+paste("Valor promedio AUC Cross.tr: ", X_auc.cross.tr)
+paste("Valor promedio AUC Cross.ts: ", X_auc.cross.ts)
+paste("Valor promedio AUC HO.tr: ", result.HO[1])
+paste("Valor promedio AUC HO.ts: ", result.HO[2])
+```
+
+Observando los resultados obtenido se puede ver que usando el método de validación cruzada obtenemos unos valores promedio de AUC mayores que con respecto al método Repeated HoldOut.
+
+## Selección de variables
+
+Mediante el uso del paquete *Fselector* pueden usarse métodos de filtrado de características.
+
+```{r}
+library(FSelector)
+print(cfs(recid~.,datos))
+print(information.gain(recid~.,datos))
+
+```
+
+Viendo los resultados obtenidos, la función *cfs* nos muestra cuáles son las variables que más influyen para el cálculo del modelo. Esto es confirmado por la función *information.gain*, que además nos muestra la ganancia que tiene cada variable en la influencia del cálculo, que como se puede observar son las variables "tam", "grado", "gang" y "gang".
+
+Por otro lado, el paquete *Fselector* también proporciona algoritmos de tipo wrapper para la estimación de clasificadores y la búsqueda de un subconjunto de variables adecuado.
+
+
+## Estimación honesta de los parámetros de un modelo predictivo
+
+Una vez obtenidos anteriormente las variables más infuyentes, se calcula el modelo con ellas.
+
+```{r}
+crossVal <- function(x){
+  auc.tr <- c()
+  auc.ts <- c()
+  fold.tr <- datos[-x, ]
+  fold.ts <- datos[x, ]
+  rlog <- glm(as.factor(fold.tr$recid) ~ tam+grado+gang+feno,data = fold.tr,family = binomial("logit"))
+  pred.tr <- predict(rlog, type = "response",newdata=fold.tr)
+  pred.ts <- predict(rlog, type = "response", newdata=fold.ts)
+  recid.tr <- ifelse(fold.tr$recid == "SI", 1, 0)
+  recid.ts <- ifelse(fold.ts$recid == "SI", 1, 0)
+  auc.tr <- c(auc(recid.tr,pred.tr,levels = c(0, 1), direction = "<"))
+  auc.ts <- c(auc(recid.ts,pred.ts,levels = c(0, 1), direction = "<"))
+  list(auc.tr, auc.ts)
+}
+
+result <- sapply(folds, crossVal)
+X_auc.cross.tr <- mean(unlist(result[1,]))
+X_auc.cross.ts <- mean(unlist(result[2,]))
+paste("Valor promedio AUC Cross.tr: ", X_auc.cross.tr)
+paste("Valor promedio AUC Cross.tr: ", X_auc.cross.ts)
+
+```

@@ -1,0 +1,196 @@
+---
+title: "Actividad 2"
+author: "Sergio Rodero Casado"
+date: "22/1/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lectura/Escritura de ficheros de datos
+
+En primer lugar se definen los directorios de trabajo.
+
+```{r}
+workingDir <- "C:/Users/sergi/Desktop/Code/Neurocomputacion/Actividad_2"
+setwd(workingDir)
+```
+
+Se realiza la lectura del fichero.
+
+```{r}
+datos <- read.table(file=paste(workingDir,"datos_icb.txt",sep="/"), header=T, sep=" ", dec=".")
+
+
+edad <- datos$edad
+tam <- datos$tam
+grado <- as.factor(datos$grado)
+gang <- datos$gang
+feno <- as.factor(datos$feno)
+quim <- as.factor(datos$quim)
+horm <- as.factor(datos$horm)
+recid <- datos$recid
+```
+
+# Estadística descriptiva
+
+```{r}
+# Edad
+summary(edad)
+hist(edad)
+
+# Tamaño
+summary(tam)
+hist(tam)
+
+# Grado
+summary(grado)
+
+# Ganglio
+summary(gang)
+hist(gang)
+
+# Feno
+summary(feno)
+
+# Quimioterapia
+summary(quim)
+
+# Horm
+summary(horm)
+
+# Recidiva
+summary(recid)
+```
+
+# Modelo completo
+
+En primer lugar se realiza la estimación del modelo de regresión logística usando la función *glm*
+
+```{r}
+rlog <- glm(as.factor(datos$recid) ~ edad + tam + grado + gang + feno + quim + horm,data = datos,family = binomial("logit"))
+```
+
+Una vez obtenido el modelo, se calcula la precisión de este mediante el cómputo del ACC aparente.
+
+```{r}
+train <- datos[1:7]
+prediction <- predict(rlog,train,type = "response")
+```
+
+Se realiza la regla de decisión.
+
+```{r}
+prediction[prediction<0.5] <- 0
+prediction[prediction>=0.5] <- 1
+recid[recid=="NO"] <- 0
+recid[recid=="SI"] <- 1
+```
+
+Comparación de lo valores reales con los de la predicción para obtener la precisión
+
+```{r}
+rate <- (sum(recid == prediction)/length(recid))*100
+
+print(rate)
+```
+
+# Modelos alternativos
+
+## Primer modelo
+
+```{r}
+rlog1 <- glm(as.factor(datos$recid) ~ edad + tam,data = datos,family = binomial("logit"))
+
+train1 <- data.frame(edad,tam)
+prediction1 <- predict(rlog1,train1,type = "response")
+
+prediction1[prediction1<0.5] <- 0
+prediction1[prediction1>=0.5] <- 1
+
+rate1 <- (sum(recid == prediction1)/length(recid))*100
+
+print(rate1)
+```
+
+El resultado obtenido es menor que el modelo completo.
+
+
+## Segundo modelo.
+
+```{r}
+rlog2 <- glm(as.factor(datos$recid) ~ tam + quim + feno,data = datos,family = binomial("logit"))
+
+train2 <- data.frame(tam,quim,feno)
+prediction2 <- predict(rlog2,train2,type = "response")
+
+prediction2[prediction2<0.5] <- 0
+prediction2[prediction2>=0.5] <- 1
+
+rate2 <- (sum(recid == prediction2)/length(recid))*100
+
+print(rate2)
+```
+
+El resultado obtenido es ligeramente menor que el modelo completo.
+
+
+## Tercer modelo
+
+```{r}
+rlog3 <- glm(as.factor(datos$recid) ~ edad + grado + quim,data = datos,family = binomial("logit"))
+
+train3 <- data.frame(edad,grado,quim)
+prediction3 <- predict(rlog3,train3,type = "response")
+
+prediction3[prediction3<0.5] <- 0
+prediction3[prediction3>=0.5] <- 1
+
+rate3 <- (sum(recid == prediction3)/length(recid))*100
+
+print(rate3)
+```
+
+El resultado obtenido es menor que el modelo completo.
+
+
+## Cuarto modelo
+
+```{r}
+rlog4 <- glm(as.factor(datos$recid) ~ gang + grado + feno,data = datos,family = binomial("logit"))
+
+train4 <- data.frame(edad,tam)
+prediction4 <- predict(rlog4,train4,type = "response")
+
+prediction4[prediction4<0.5] <- 0
+prediction4[prediction4>=0.5] <- 1
+
+rate4 <- (sum(recid == prediction4)/length(recid))*100
+
+print(rate4)
+```
+
+El resultado obtenido es mayor que el modelo completo.
+
+
+## Quinto modelo
+
+```{r}
+rlog5 <- glm(as.factor(datos$recid) ~ edad + gang + feno + quim,data = datos,family = binomial("logit"))
+
+train5 <- data.frame(edad,gang,feno,quim)
+prediction5 <- predict(rlog5,train5,type = "response")
+
+prediction5[prediction5<0.5] <- 0
+prediction5[prediction5>=0.5] <- 1
+
+rate5 <- (sum(recid == prediction5)/length(recid))*100
+
+print(rate5)
+```
+
+El resultado obtenido es ligeramente mayor que el modelo completo.

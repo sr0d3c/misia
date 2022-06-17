@@ -1,0 +1,49 @@
+---
+title: "Actividad 3"
+author: "Sergio Rodero Casado"
+date: "4/2/2022"
+output: html_document
+---
+
+## Precisión (Accuracy) aparente
+
+La precisión aparente es cuando se calcula la precisión en clasificación de los modelos sobre el conjunto total de datos disponible, es decir, se usa el total de datos como el total de datos del modelo y posteriormente se ha calculado como de bien ha aprendido el modelo esos datos.
+
+¿Sirve como predicción de futuro? No sabríamos la precisión que tendría tras la estimación de este modelo.
+
+## Método Hold-out
+
+Se trata de dividir los datos en dos subconjuntos de tamaño similar: entrenamiento y test. El modelo es estimado usando el set training.
+
+Este modelo tiene dos inconvenientes que son los siguientes. En primer lugar, si tenemos un conjunto de datos pequeño, además de dividirlo para generar el conjunto de test, se corre el riesgo de que el conjunto de entrenamiento se quede muy pequeño y sea poco representativo de la población bajo estudio. El segundo es que la división, obviamente que se realiza de forma aleatoria es posible que no haya sido afortunada en el sentido de que las clases queden igualmente balanceadas en ambos conjuntos o que simplemente el conjunto de entrenamiento sea muy diferente del conjunto de test.
+
+La solución pasa por la aplicación de una familia de métodos de remuestreo, pagando el peaje del coste computacional. Aunque existen diferentes métodos.
+
+## Procedimiento Random subsampling
+
+Este procedimiento divide un número determinado de veces y aleatoriamente el conjunto de datos completo en dos subconjuntos, entrenamiento y test. En cada iteración se estima el modelo con su correspondiente conjunto de entrenamiento y se testea con el conjunto de test. Se calcula entonces el estimador ACCURACY en cada iteración y posteriormente se promedian todos los estimadores parciales para calcular el accuracy global en predicción.
+
+## Muestreo en R
+
+La función "sample" toma muestras de un tamaño específico
+
+> sample(x,size,replace = FALSE, prob = NULL)
+
+x: puede ser un vector de uno o más elementos entre los que realizar la selección, o un entero positivo n para indicar el rango de 1 a n.
+size: número de elementos que devuelve la función. Debe ser menor o igual al tamaño del vector.
+replace: permite realizar el muestreo con o sin reemplazo. Si es TRUE puede obtener el mismo elemento seleccionado más de una vez.
+
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+

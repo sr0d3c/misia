@@ -1,0 +1,19 @@
+package matrices;
+
+import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNoException;
+
+import org.junit.Test;
+
+public class Test_task {
+
+	@Test(expected = Exception.class)
+	public void testMultiplicacion() {
+        Matriz m1 = new Matriz(1, 2, true);
+        System.out.println(m1);
+        Matriz m2 = new Matriz(3, 4, true);
+        System.out.println(m2); 
+        Matriz resultado = Matriz.multiplicarDosMatrices(m1, m2);
+	}
+
+}

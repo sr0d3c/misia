@@ -1,0 +1,6 @@
+INDEX VERSION 1.131+C:\Users\sergi\Desktop\Code\informatica_social\.metadata\.plugins\org.eclipse.jdt.core
+1865797976.index
+3737275216.index
+3391426626.index
+45473420.index
+1348667586.index

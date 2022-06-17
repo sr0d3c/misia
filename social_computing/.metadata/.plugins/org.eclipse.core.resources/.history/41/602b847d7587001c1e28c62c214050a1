@@ -1,0 +1,17 @@
+package matrices;
+
+import static org.junit.Assert.*;
+
+import org.junit.Test;
+
+public class Test_multiplicar {
+
+	@Test
+	public void testMultiplicacion() {
+        Matriz m1 = new Matriz(3, 3, true);
+        System.out.println(m1);
+        Matriz m2 = new Matriz(3, 3, true);
+        System.out.println(m2); 
+	}
+
+}
