@@ -1,24 +1,18 @@
 import os
 
-direccion = "C:/Users/sergi/Desktop/Code/informatica_social/genomas/"
-texto = "wax synthase"
-contenido = os.listdir(direccion)
-lines = []
-directorios = []
+dir = "C:/Users/sergi/Desktop/misia/social_computing/genomas/genomas"
 
-def buscar(direc,txt):
-    with open(direc) as f:
-        datafile = f.readlines ()
-    for line in datafile:
-        if txt in line:
-            lines.append(line)
-    return lines
-
-for dir in contenido:
-    if os.path.isdir(dir):
-        directorios.append(dir)
+def buscar(dir, txt="wax synthase"):
+    for name_dir, dirs, files in os.walk(dir):
+        for name_file in files:
+            extension = os.path.splitext(name_file)[1]
+            if extension == ".txt":
+                path = name_dir + "/" + name_file
+                print(path)
+                with open(path, 'r') as f:
+                    for line in f.readlines():
+                        if txt in line:
+                            print(line)
 
 
-lineas = buscar(direccion,texto)
-for linea in lineas:
-    print(linea)
+buscar(dir)
